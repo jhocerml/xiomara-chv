@@ -1,45 +1,54 @@
 import streamlit as st
 from google import genai
-from sklearn import tree
 
-# 1. Conexión segura y cacheada
+# --- CONFIGURACIÓN DE FONDO Y ESTILO ---
+st.set_page_config(page_title="Xiomara AI", page_icon="✨")
+
+# Estilo de fondo oscuro elegante
+page_bg_img = """
+<style>
+[data-testid="stAppViewContainer"] {
+    background-color: #0e1117;
+    background-image: radial-gradient(#2c3e50 0.5px, #0e1117 0.5px);
+    background-size: 20px 20px;
+}
+</style>
+"""
+st.markdown(page_bg_img, unsafe_allow_html=True)
+
+# --- CONEXIÓN INTERNA ---
 @st.cache_resource
 def configurar_ia():
+    # Tu llave sigue segura en st.secrets
     return genai.Client(api_key=st.secrets["GOOGLE_API_KEY"])
 
 cliente = configurar_ia()
 
-# 2. Modelo de Machine Learning (Cacheado para que no entrene cada vez)
-@st.cache_resource
-def entrenar_modelo():
-    caracteristicas = [[140, 0], [130, 0], [150, 1], [170, 1]]
-    etiquetas = [0, 0, 1, 1]
-    modelo = tree.DecisionTreeClassifier()
-    return modelo.fit(caracteristicas, etiquetas)
+# --- INTERFAZ PERSONALIZADA ---
+st.title("✨ Xiomara AI: Tu Asistente Personal")
+st.write("Bienvenido. Escribe tu mensaje y te responderé de inmediato.")
 
-xiomara_chv = entrenar_modelo()
+# Formulario de Chat
+with st.form("chat_ia", clear_on_submit=True):
+    pregunta = st.text_input("¿En qué puedo ayudarte?", placeholder="Escribe aquí...")
+    enviar = st.form_submit_button("Enviar mensaje")
 
-# 3. Interfaz
-st.title("🍎 Xiomara ChV: Versión Pro")
-
-# Clasificador (Funciona instantáneo porque no usa internet)
-peso = st.number_input("Peso:", value=150)
-textura = st.selectbox("Textura:", [0, 1], format_func=lambda x: "Lisa" if x==0 else "Rugosa")
-
-if st.button("Predecir"):
-    res = xiomara_chv.predict([[peso, textura]])
-    st.success(f"Es una {'Manzana' if res[0]==0 else 'Naranja'}")
-
-st.divider()
-
-# Chat (Protegido por formulario para no gastar API)
-with st.form("chat_ia"):
-    pregunta = st.text_input("Pregunta a Gemini:")
-    enviar = st.form_submit_button("Consultar")
-    
     if enviar and pregunta:
         try:
-            res_ia = cliente.models.generate_content(model="gemini-1.5-flash", contents=pregunta)
+            # Personalizamos la respuesta para que se identifique como Xiomara AI
+            prompt_personalizado = f"Eres Xiomara AI, una asistente inteligente, amable y eficiente. Responde a lo siguiente: {pregunta}"
+            
+            res_ia = cliente.models.generate_content(
+                model="gemini-1.5-flash", 
+                contents=prompt_personalizado
+            )
+            
+            st.markdown("---")
+            st.subheader("Xiomara AI dice:")
             st.info(res_ia.text)
+            
         except Exception as e:
-            st.warning("Cuota temporalmente agotada. Espera 60 segundos.")
+            st.warning("Estoy procesando mucha información ahora mismo. Por favor, intenta de nuevo en un momento.")
+
+# Pie de página opcional
+st.markdown("<br><br><p style='text-align: center; color: gray;'>Desarrollado por Xiomara ChV</p>", unsafe_allow_html=True)
